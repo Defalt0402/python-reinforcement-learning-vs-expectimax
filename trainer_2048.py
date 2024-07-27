@@ -23,6 +23,8 @@ class Game:
             self.board[i, j] = 2 if np.random.rand() < 0.9 else 4
             self.score += 2 if self.board[i, j] == 2 else 4
 
+    ## Slide left does actual movement
+    # Other slides manipulate/rotate board so that slide code doesnt have to be repeated
     def slide_left(self):
         moved = False
         for row in self.board:
