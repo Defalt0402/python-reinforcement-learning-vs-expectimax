@@ -220,6 +220,15 @@ class Softmax:
     def backward(self, gradient):
         self.dinputs = gradient.copy() 
 
+class Linear:
+    def forward(self, inputs):
+        self.outputs = inputs
+
+    def backward(self, gradient):
+        self.dinputs = gradient.copy()
+
+
+
 class Loss:
     def calculate(self, yPred, y):
         return np.mean(self.forward(yPred, y))

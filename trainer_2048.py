@@ -1,3 +1,5 @@
+from neural_net import *
+from deep_q import *
 import tkinter as tk
 import numpy as np
 
@@ -92,8 +94,43 @@ class GUI:
         self.game = Game()
         self.root = root
         self.root.title("2048")
-        self.canvas = tk.Canvas(root, width=400, height=400, bg='lightgray')
-        self.canvas.pack()
+        
+        # Create the main frame
+        self.main_frame = tk.Frame(root)
+        self.main_frame.pack(fill=tk.BOTH, expand=True)
+        
+        # Create the game canvas
+        self.canvas = tk.Canvas(self.main_frame, width=400, height=400, bg='lightgray')
+        self.canvas.pack(side=tk.LEFT, padx=10, pady=10)
+        
+        # Create the control panel frame
+        self.control_panel = tk.Frame(self.main_frame)
+        self.control_panel.pack(side=tk.RIGHT, fill=tk.Y, padx=10, pady=10)
+        
+        # Create a label to display the score
+        self.score_label = tk.Label(self.control_panel, text=f"Score: {self.game.score}", font=('Arial', 24))
+        self.score_label.pack(side=tk.TOP, pady=10)
+
+        # Create buttons in the control panel
+        self.train_button = tk.Button(self.control_panel, text="Train Agent", command=self.train_agent)
+        self.train_button.pack(side=tk.TOP, pady=10)
+        
+        self.play_button = tk.Button(self.control_panel, text="Play with Agent", command=self.play_with_agent)
+        self.play_button.pack(side=tk.TOP, pady=10)
+
+         # Placeholder button at the top of the right frame
+        self.placeholder_button = tk.Button(self.control_panel, text="Play with expectimax")
+        self.placeholder_button.pack(side=tk.TOP, pady=5)
+
+        # Button to reset the game
+        self.reset_button = tk.Button(self.control_panel, text="Reset Game", command=self.reset)
+        self.reset_button.pack(side=tk.BOTTOM, pady=5)
+
+        # Button to quit the game
+        self.quit_button = tk.Button(self.control_panel, text="Quit", command=self.root.quit)
+        self.quit_button.pack(side=tk.BOTTOM, pady=5)
+
+        # Color mapping for tiles
         self.tile_colours = {
             0: 'lightgray',
             2: '#eee4da',
@@ -113,6 +150,11 @@ class GUI:
         self.root.bind("<Right>", self.move_right)
         self.root.bind("<Up>", self.move_up)
         self.root.bind("<Down>", self.move_down)
+        self.agent = None
+
+    def reset(self):
+        self.game.reset()
+        self.draw_board()
 
     def draw_board(self):
         self.canvas.delete("all")
@@ -125,7 +167,7 @@ class GUI:
                 self.canvas.create_rectangle(x, y, x + 80, y + 80, fill=colour, outline='gray')
                 if value != 0:
                     self.canvas.create_text(x + 40, y + 40, text=str(value), font=('Arial', 24))
-        self.canvas.create_text(200, 450, text="Score: " + str(self.game.score), font=('Arial', 24))
+        self.score_label.config(text=f"Score: {self.game.score}")
 
     def move_left(self, event):
         if self.game.slide_left():
@@ -152,12 +194,55 @@ class GUI:
                 self.show_game_over()
 
     def show_game_over(self):
-        self.canvas.create_text(200, 200, text="Game Over", font=('Arial', 32), fill='red')
+        self.canvas.create_text(200, 200, text="Game Over", font=('Arial', 36), fill='red')
 
+    def train_agent(self, episodes=1000, name=None):
+        if name == None:
+            input_neurons = 16
+            num_actions = 4
+            loss = Mean_Squared_Error_Loss
+            self.agent = Q_Network(Game, input_neurons, loss, num_actions)
+            self.agent.add_layer(16, 32, ReLU)
+            self.agent.add_layer(32, 32, ReLU)
+            self.agent.add_layer(32, 4, Linear)
+            self.agent.train(episodes, gui_callback=self.update_gui_during_training)
+            self.agent.save_model("2048_agent.pkl")
+        else:
+            self.load_agent(name)
+            self.agent.train(episodes, gui_callback=self.update_gui_during_training)
+            self.agent.save_model(name)
+        print("Agent trained and model saved as 2048_agent.pkl")
 
-def run_game():
-    root = tk.Tk()
-    app = GUI(root)
-    root.mainloop()
+    def update_gui_during_training(self):
+        self.game = self.agent.game  # Update the game state in the GUI
+        self.draw_board()
+        self.root.update_idletasks()  # Update the GUI
 
-run_game()
+    def load_agent(self, name=None):
+        if name == None:
+            self.agent = Q_Network(lambda: None, 16, Mean_Squared_Error_Loss, 4).load_model('2048_agent.pkl')
+        else:
+            self.agent = Q_Network(lambda: None, 16, Mean_Squared_Error_Loss, 4).load_model(name)
+        print("Agent model loaded from 2048_agent.pkl")
+
+    def agent_move(self):
+        if self.agent is not None:
+            state = self.game.board
+            action = self.agent.choose_action(state)
+            if action == 0:
+                moved = self.game.slide_left()
+            elif action == 1:
+                moved = self.game.slide_right()
+            elif action == 2:
+                moved = self.game.slide_up()
+            elif action == 3:
+                moved = self.game.slide_down()
+            self.draw_board()
+            if self.game.is_game_over():
+                self.show_game_over()
+            else:
+                self.root.after(500, self.agent_move)
+
+    def play_with_agent(self):
+        self.load_agent()
+        self.root.after(50, self.agent_move)
