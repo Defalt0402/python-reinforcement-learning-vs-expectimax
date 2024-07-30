@@ -1,5 +1,6 @@
 from neural_net import *
 from deep_q import *
+from sklearn.model_selection import ParameterGrid
 import tkinter as tk
 import numpy as np
 
@@ -112,7 +113,7 @@ class GUI:
         self.score_label.pack(side=tk.TOP, pady=10)
 
         # Create buttons in the control panel
-        self.train_button = tk.Button(self.control_panel, text="Train Agent", command=self.train_agent)
+        self.train_button = tk.Button(self.control_panel, text="Train Agent", command=self.grid_search)
         self.train_button.pack(side=tk.TOP, pady=10)
         
         self.play_button = tk.Button(self.control_panel, text="Play with Agent", command=self.play_with_agent)
@@ -212,6 +213,46 @@ class GUI:
             self.agent.train(episodes, gui_callback=self.update_gui_during_training)
             self.agent.save_model(name)
         print("Agent trained and model saved as 2048_agent.pkl")
+
+    def grid_search(self, episodes=1000, name=None):
+        param_grid = {
+            'alpha': [0.0001, 0.001, 0.01],
+            'gamma': [0.9, 0.95, 0.99],
+            'epsilon': [0.5, 0.75, 1.0],
+            'epsilonDecay': [0.99, 0.995, 0.9995],
+            'batchSize': [32, 64, 128],
+            'bufferSize': [5000, 10000, 20000]
+        }
+
+        # Define hidden layer configurations
+        hidden_layers_configurations = [
+            [(16, 32, ReLU), (32, 32, ReLU), (32, 4, Linear)],
+            [(16, 64, ReLU), (64, 64, ReLU), (64, 4, Linear)],
+            [(32, ReLU), (32, ReLU), (32, ReLU), (32, 4, Linear)],
+            [(64, ReLU), (64, ReLU), (64, ReLU), (64, 4, Linear)],
+        ]
+
+        best_score = -float('inf')
+        best_params = None
+        for hidden_layers in hidden_layers_configurations:
+            for params in ParameterGrid(param_grid):
+                self.agent = Q_Network(Game, 16, Mean_Squared_Error_Loss, 4, **params)
+                for inputs, num_neurons, activation in hidden_layers:
+                    self.agent.add_layer(inputs, num_neurons, activation)
+                self.agent.train(1000)  # Adjust the number of episodes as needed
+                
+                score = max(self.agent.score_history)  # Or use some other performance metric
+                if score > best_score:
+                    best_score = score
+                    best_configuration = hidden_layers
+                    best_params = params
+
+                self.agent.plot_metrics(f"agent: {params}, layers: {hidden_layers}")
+
+
+        print(f"Best Score: {best_score}")
+        print(f"Best Hidden Layer Configuration: {best_configuration}")
+        print(f"Best Hyperparameters: {best_params}")
 
     def update_gui_during_training(self):
         self.game = self.agent.game  # Update the game state in the GUI
