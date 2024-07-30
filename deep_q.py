@@ -79,7 +79,7 @@ class Q_Network(Network):
         for state, action, reward, next_state, done in minibatch:
             target = self.forward(state.flatten().reshape(1, -1))
             if done:
-                target[0][action] = reward
+                target[0][action] = reward - 1000
             else:
                 next_state = next_state.flatten().reshape(1, -1)
                 t = self.target_network.forward(next_state)
@@ -126,7 +126,7 @@ class Q_Network(Network):
         elif action == 3:
             moved = self.game.slide_down()
         
-        reward = self.game.score
+        reward = self.game.score + self.game.evaluate_board()
         next_state = self.game.board
         done = self.game.is_game_over()
         return next_state, reward, done

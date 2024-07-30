@@ -7,6 +7,10 @@ import numpy as np
 class Game:
     def __init__(self):
         self.reset()
+        self.boardWeights = np.array([[511, 255, 127, 63],
+                             [255, 127, 63, 31],
+                             [127, 63, 31, 15],
+                             [63, 31, 15, 7]])
 
     def show_game(self):
         print(self.score)
@@ -89,6 +93,9 @@ class Game:
 
     def can_merge(self, line):
         return any(line[i] == line[i + 1] for i in range(len(line) - 1))
+    
+    def evaluate_board(self):
+        return np.sum(self.board * self.boardWeights)
     
 class GUI:
     def __init__(self, root):
