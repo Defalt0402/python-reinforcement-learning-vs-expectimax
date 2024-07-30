@@ -132,7 +132,7 @@ class GUI:
         self.score_label.pack(side=tk.TOP, pady=10)
 
         # Create buttons in the control panel
-        self.train_button = tk.Button(self.control_panel, text="Train Agent", command=self.grid_search)
+        self.train_button = tk.Button(self.control_panel, text="Train Agent", command=self.train_agent)
         self.train_button.pack(side=tk.TOP, pady=10)
         
         self.play_button = tk.Button(self.control_panel, text="Play with Agent", command=self.play_with_agent)
@@ -222,9 +222,10 @@ class GUI:
             num_actions = 4
             loss = Mean_Squared_Error_Loss
             self.agent = Q_Network(Game, input_neurons, loss, num_actions)
-            self.agent.add_layer(16, 32, ReLU)
-            self.agent.add_layer(32, 32, ReLU)
-            self.agent.add_layer(32, 4, Linear)
+            self.agent.add_layer(16, 64, ReLU)
+            self.agent.add_layer(64, 64, ReLU)
+            self.agent.add_layer(64, 32, ReLU)
+            self.agent.add_layer(32, 3, Linear)
             self.agent.train(episodes, gui_callback=self.update_gui_during_training)
             self.agent.save_model("2048_agent.pkl")
         else:
@@ -235,20 +236,19 @@ class GUI:
 
     def grid_search(self, episodes=1000, name=None):
         param_grid = {
-            'alpha': [0.0001, 0.001, 0.01],
-            'gamma': [0.9, 0.95, 0.99],
-            'epsilon': [0.5, 0.75, 1.0],
-            'epsilonDecay': [0.99, 0.995, 0.9995],
-            'batchSize': [32, 64, 128],
-            'bufferSize': [5000, 10000, 20000]
+            'alpha': [0.001],
+            'gamma': [0.95, 0.99],
+            'epsilon': [0.75, 1.0],
+            'epsilonDecay': [ 0.995, 0.9995],
+            'batchSize': [32, 64],
+            'bufferSize': [5000]
         }
 
         # Define hidden layer configurations
         hidden_layers_configurations = [
-            [(16, 32, ReLU), (32, 32, ReLU), (32, 4, Linear)],
+            [(16, 64, ReLU), (64, 64, ReLU), (64, 64, ReLU), (64, 4, Linear)],
             [(16, 64, ReLU), (64, 64, ReLU), (64, 4, Linear)],
-            [(32, ReLU), (32, ReLU), (32, ReLU), (32, 4, Linear)],
-            [(64, ReLU), (64, ReLU), (64, ReLU), (64, 4, Linear)],
+            [(16, 32, ReLU), (32, 32, ReLU), (32, 32, ReLU), (32, 4, Linear)],
         ]
 
         param_combinations = list(ParameterGrid(param_grid))
