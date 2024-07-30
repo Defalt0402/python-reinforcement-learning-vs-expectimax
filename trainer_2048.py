@@ -1,8 +1,20 @@
 from neural_net import *
 from deep_q import *
 from sklearn.model_selection import ParameterGrid
+from multiprocessing import Pool, Manager
 import tkinter as tk
 import numpy as np
+
+
+def worker(params, hidden_layers):
+            agent = Q_Network(Game, 16, Mean_Squared_Error_Loss, 4, **params)
+            for inputs, num_neurons, activation in hidden_layers:
+                agent.add_layer(inputs, num_neurons, activation)
+            agent.train(episodes=1000)
+            agent.plot_metrics(f"agent: {params}, layers: {hidden_layers}")
+            score = max(agent.score_history)  # Or use some other performance metric
+            return score, params, hidden_layers
+
 
 class Game:
     def __init__(self):
@@ -239,23 +251,28 @@ class GUI:
             [(64, ReLU), (64, ReLU), (64, ReLU), (64, 4, Linear)],
         ]
 
+        param_combinations = list(ParameterGrid(param_grid))
+
+        manager = Manager()
+        results = manager.list()
+
+        with Pool() as pool:
+            jobs = []
+            for hidden_layers in hidden_layers_configurations:
+                for params in param_combinations:
+                    job = pool.apply_async(worker, (params, hidden_layers), callback=lambda result: results.append(result))
+                    jobs.append(job)
+            for job in jobs:
+                job.get()  # Wait for all jobs to complete
+
         best_score = -float('inf')
         best_params = None
-        for hidden_layers in hidden_layers_configurations:
-            for params in ParameterGrid(param_grid):
-                self.agent = Q_Network(Game, 16, Mean_Squared_Error_Loss, 4, **params)
-                for inputs, num_neurons, activation in hidden_layers:
-                    self.agent.add_layer(inputs, num_neurons, activation)
-                self.agent.train(1000)  # Adjust the number of episodes as needed
-                
-                score = max(self.agent.score_history)  # Or use some other performance metric
-                if score > best_score:
-                    best_score = score
-                    best_configuration = hidden_layers
-                    best_params = params
-
-                self.agent.plot_metrics(f"agent: {params}, layers: {hidden_layers}")
-
+        best_configuration = None
+        for score, params, hidden_layers in results:
+            if score > best_score:
+                best_score = score
+                best_params = params
+                best_configuration = hidden_layers
 
         print(f"Best Score: {best_score}")
         print(f"Best Hidden Layer Configuration: {best_configuration}")
