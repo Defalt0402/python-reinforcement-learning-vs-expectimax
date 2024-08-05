@@ -1,5 +1,6 @@
 from neural_net import *
 from deep_q import *
+from player_expectimax import *
 from sklearn.model_selection import ParameterGrid
 from multiprocessing import Pool, Manager
 import tkinter as tk
@@ -109,6 +110,41 @@ class Game:
     def evaluate_board(self):
         return np.sum(self.board * self.boardWeights)
     
+    def get_empty_tiles(self):
+        return [(i, j) for i in range(4) for j in range(4) if self.board[i, j] == 0]
+    
+    def expect_move(self, move):
+        if move == 0:
+            self.slide_left()
+        elif move == 1:
+            self.slide_right()
+        elif move == 2:
+            self.slide_up()
+        elif move == 3:
+            self.slide_down()
+    
+    def get_legal_moves(self):
+        legal_moves = []
+        original_board = self.board.copy()
+        
+        if self.slide_left():
+            legal_moves.append(0)
+            self.board = original_board.copy()
+            
+        if self.slide_right():
+            legal_moves.append(1)
+            self.board = original_board.copy()
+            
+        if self.slide_up():
+            legal_moves.append(2)
+            self.board = original_board.copy()
+            
+        if self.slide_down():
+            legal_moves.append(3)
+            self.board = original_board.copy()
+
+        return legal_moves
+    
 class GUI:
     def __init__(self, root):
         self.game = Game()
@@ -139,7 +175,7 @@ class GUI:
         self.play_button.pack(side=tk.TOP, pady=10)
 
          # Placeholder button at the top of the right frame
-        self.placeholder_button = tk.Button(self.control_panel, text="Play with expectimax")
+        self.placeholder_button = tk.Button(self.control_panel, text="Play with expectimax", command=self.play_with_expectimax)
         self.placeholder_button.pack(side=tk.TOP, pady=5)
 
         # Button to reset the game
@@ -171,6 +207,7 @@ class GUI:
         self.root.bind("<Up>", self.move_up)
         self.root.bind("<Down>", self.move_down)
         self.agent = None
+        self.expectimaxAgent = Expectimax_Agent(self.game)
 
     def reset(self):
         self.game.reset()
@@ -311,3 +348,13 @@ class GUI:
     def play_with_agent(self):
         self.load_agent()
         self.root.after(50, self.agent_move)
+    
+    def play_with_expectimax(self):
+        move = self.expectimaxAgent.get_best_move()
+        self.game.expect_move(move)
+        self.draw_board()
+
+        if self.game.is_game_over():
+            self.show_game_over()
+        else:
+            self.root.after(50, self.play_with_expectimax)
