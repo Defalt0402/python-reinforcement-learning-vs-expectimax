@@ -52,7 +52,8 @@ class Game:
             if not np.array_equal(row, new_row):
                 moved = True
             row[:] = new_row
-        self.add_random_tile()
+        if moved:
+            self.add_random_tile()
         return moved
 
     def slide_right(self):
@@ -125,23 +126,23 @@ class Game:
     
     def get_legal_moves(self):
         legal_moves = []
-        original_board = self.board.copy()
+        original_board = np.copy(self.board)
         
         if self.slide_left():
             legal_moves.append(0)
-            self.board = original_board.copy()
+            self.board = np.copy(original_board)
             
         if self.slide_right():
             legal_moves.append(1)
-            self.board = original_board.copy()
+            self.board = np.copy(original_board)
             
         if self.slide_up():
             legal_moves.append(2)
-            self.board = original_board.copy()
+            self.board = np.copy(original_board)
             
         if self.slide_down():
             legal_moves.append(3)
-            self.board = original_board.copy()
+            self.board = np.copy(original_board)
 
         return legal_moves
     
@@ -223,7 +224,7 @@ class GUI:
                 colour = self.tile_colours.get(value, 'black')  # Default to 'black' if the value is not in the mapping
                 self.canvas.create_rectangle(x, y, x + 80, y + 80, fill=colour, outline='gray')
                 if value != 0:
-                    self.canvas.create_text(x + 40, y + 40, text=str(value), font=('Arial', 24))
+                    self.canvas.create_text(x + 40, y + 40, text=str(int(value)), font=('Arial', 24))
         self.score_label.config(text=f"Score: {self.game.score}")
 
     def move_left(self, event):
