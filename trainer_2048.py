@@ -216,7 +216,7 @@ class GUI:
     def show_game_over(self):
         self.canvas.create_text(200, 200, text="Game Over", font=('Arial', 36), fill='red')
 
-    def train_agent(self, episodes=1000, name=None):
+    def train_agent(self, episodes=5000, name=None):
         if name == None:
             input_neurons = 16
             num_actions = 4
@@ -225,9 +225,9 @@ class GUI:
             self.agent.add_layer(16, 64, ReLU)
             self.agent.add_layer(64, 64, ReLU)
             self.agent.add_layer(64, 32, ReLU)
-            self.agent.add_layer(32, 3, Linear)
+            self.agent.add_layer(32, 4, Linear)
             self.agent.train(episodes, gui_callback=self.update_gui_during_training)
-            self.agent.save_model("2048_agent.pkl")
+            self.agent.save_model("2048_agent_no_score.pkl")
         else:
             self.load_agent(name)
             self.agent.train(episodes, gui_callback=self.update_gui_during_training)

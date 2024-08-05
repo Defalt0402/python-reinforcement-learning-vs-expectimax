@@ -5,7 +5,7 @@ import tkinter as tk
 import numpy as np
 
 class Q_Network(Network):
-    def __init__(self, game, inputNeurons, loss, numActions, bufferSize=10000, batchSize=64, gamma=0.99, epsilon=1.0, minEpsilon=0.1, epsilonDecay=0.995, alpha=0.001):
+    def __init__(self, game, inputNeurons, loss, numActions, bufferSize=10000, batchSize=64, gamma=0.99, epsilon=1.0, minEpsilon=0.1, epsilonDecay=0.999, alpha=0.001):
         super().__init__(inputNeurons, loss)
         self.game = game()
         self.actionSpace = [i for i in range(numActions)]
@@ -113,8 +113,8 @@ class Q_Network(Network):
             self.score_history.append(self.game.score)
             print(f"Episode {episode + 1}/{episodes}, Score: {self.game.score}, Epsilon: {self.epsilon}")
 
-        self.plot_metrics("2048_trained")
-        self.save_model("2048_trained")
+        self.plot_metrics("2048_agent_no_score")
+        self.save_model("2048_agent_no_score")
             
     def step(self, action):
         if action == 0:
@@ -126,7 +126,7 @@ class Q_Network(Network):
         elif action == 3:
             moved = self.game.slide_down()
         
-        reward = self.game.score + self.game.evaluate_board()
+        reward = self.game.evaluate_board()
         next_state = self.game.board
         done = self.game.is_game_over()
         return next_state, reward, done
