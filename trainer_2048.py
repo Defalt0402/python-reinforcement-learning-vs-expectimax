@@ -350,12 +350,18 @@ class GUI:
         self.load_agent()
         self.root.after(50, self.agent_move)
     
-    def play_with_expectimax(self):
+    def play_with_expectimax(self, moves=0):
         move = self.expectimaxAgent.get_best_move()
         self.game.expect_move(move)
         self.draw_board()
 
         if self.game.is_game_over():
-            self.show_game_over()
+            self.reset()
+            self.expectimaxAgent.save_memo()
+            self.play_with_expectimax()
+        if moves == 20:
+            self.reset()
+            self.expectimaxAgent.save_memo()
+            self.play_with_expectimax()
         else:
-            self.root.after(50, self.play_with_expectimax)
+            self.root.after(50, lambda: self.play_with_expectimax(moves+1))

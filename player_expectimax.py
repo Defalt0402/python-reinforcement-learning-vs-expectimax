@@ -1,10 +1,21 @@
 from neural_net import *
+from joblib import dump, load
 import numpy as np
+import os
 
 class Expectimax_Agent():
     def __init__(self, game, depth=3):
         self.game = game
         self.depth = depth
+        self.memo = {}
+
+        self.memoFile = "memo/memo.pkl"
+        if os.path.exists(self.memoFile):
+            self.memo = load(self.memoFile)
+
+    def save_memo(self):
+        os.makedirs(os.path.dirname(self.memoFile), exist_ok=True)
+        dump(self.memo, self.memoFile)
 
     def get_best_move(self):
         currentScore = self.game.score
@@ -13,7 +24,13 @@ class Expectimax_Agent():
         for move in self.game.get_legal_moves():
             currentBoard = np.copy(self.game.board)
             self.game.expect_move(move)
-            val = self.expectimax(self.game.board, self.depth, "chance", float("-inf"), float("inf"))
+            board_tuple = tuple(map(tuple, self.game.board))  # Convert to a hashable type
+            if board_tuple in self.memo:
+                val = self.memo[board_tuple]
+            else:
+                val = self.expectimax(self.game.board, self.depth, "chance", float("-inf"), float("inf"))
+                self.memo[board_tuple] = val  
+
             if val > bestVal:
                 bestVal = val
                 bestMove = move
@@ -30,7 +47,11 @@ class Expectimax_Agent():
             for move in self.game.get_legal_moves():
                 currentBoard = np.copy(board)
                 self.game.expect_move(move)
-                maxVal = max(maxVal, self.expectimax(self.game.board, depth-1, "chance", alpha, beta))
+                board_tuple = tuple(map(tuple, self.game.board))  # Convert to a hashable type
+                if board_tuple in self.memo:
+                    maxVal = max(maxVal, self.memo[board_tuple])
+                else:
+                    maxVal = max(maxVal, self.expectimax(self.game.board, depth-1, "chance", alpha, beta))
                 self.game.board[:] = currentBoard
                 alpha = max(alpha, maxVal)
                 if beta <= alpha:  # Beta cut-off
