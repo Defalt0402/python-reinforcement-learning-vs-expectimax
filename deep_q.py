@@ -5,7 +5,7 @@ import tkinter as tk
 import numpy as np
 
 class Q_Network(Network):
-    def __init__(self, game, inputNeurons, loss, numActions, bufferSize=10000, batchSize=64, gamma=0.99, epsilon=1.0, minEpsilon=0.1, epsilonDecay=0.999, alpha=0.001):
+    def __init__(self, game, inputNeurons, loss, numActions, bufferSize=10000, batchSize=512, gamma=0.99, epsilon=0.1, minEpsilon=0, epsilonDecay=0.9999, alpha=0.001):
         super().__init__(inputNeurons, loss)
         self.game = game()
         self.actionSpace = [i for i in range(numActions)]
@@ -44,7 +44,7 @@ class Q_Network(Network):
 
     def load_model(self, name):
         model = joblib.load(f"model/{name}.pkl")
-        net = Q_Network(model["game"], model["inputNeurons"], model["loss"], model["numActions"], model["batchSize"], model["gamma"],
+        net = Q_Network(model["game"], model["inputNeurons"], model["loss"], model["numActions"], model["bufferSize"], model["batchSize"], model["gamma"],
                         model["epsilon"], model["minEpsilon"], model["epsilonDecay"], model["alpha"])
         for weights, biases, activation in model['hidden_layers']:
             layer = Layer(0, 0, activation)
@@ -52,7 +52,7 @@ class Q_Network(Network):
             net.hidden_layers.append(layer)
         for weights, biases, activation in model['target_hidden_layers']:
             layer = Layer(0, 0, activation)
-            layer.load_layer(weights, biases)
+            layer.load_layer(weights, biases, activation)
             net.target_network.hidden_layers.append(layer)
         return net
 
@@ -93,13 +93,14 @@ class Q_Network(Network):
             oneHotState = self.one_hot_encode_board(state)
             target = self.forward(oneHotState)
             if done:
-                target[0][action] = reward - 100
+                target[0][action] = reward
             else:
                 oneHotNextState = self.one_hot_encode_board(next_state)
                 t = self.target_network.forward(oneHotNextState)
+                futureReward = np.amax(t)
 
-                futureReward = self.calculate_discounted_reward([reward, np.amax(t)])
-                target[0][action] = reward + self.gamma * futureReward
+                totalReward = self.calculate_discounted_reward([reward, futureReward])
+                target[0][action] = reward + self.gamma * totalReward
 
             self.partial_fit(oneHotState, target)
 
@@ -112,8 +113,8 @@ class Q_Network(Network):
         self.target_network.hidden_layers = self.hidden_layers.copy()
 
     def train(self, episodes, gui_callback=None):
+        count = 0
         for episode in range(episodes):
-            count = 0
             self.game.reset()
             state = self.game.board
             done = False
@@ -123,11 +124,11 @@ class Q_Network(Network):
                 self.store_experience(state, action, reward, next_state, done)
                 state = next_state
 
-                for _ in range(10):
-                    self.replay()
-
                 if gui_callback is not None:
                     gui_callback()
+
+            for _ in range(10):
+                self.replay()
             self.update_target_network()
             self.update_epsilon()
             self.score_history.append(self.game.score)
@@ -135,6 +136,7 @@ class Q_Network(Network):
 
             count += 1
             if count % 5 == 0:
+                print("saved")
                 self.save_model("2048_agent")
 
         self.plot_metrics("2048_agent")
@@ -153,18 +155,33 @@ class Q_Network(Network):
             moved = self.game.slide_down()
         
         reward = self.calculate_reward_with_penalty(previousBoard, self.game.board, action)
+        # reward = self.game.evaluate_board()
 
         done = self.game.is_game_over()
         next_state = self.game.board
         return next_state, reward, done
 
     def calculate_reward(self, previousBoard, currentBoard):
-        mergedVal = sum(currentBoard.flatten()) - sum(previousBoard.flatten())
-        return mergedVal if mergedVal > 0 else 0
-    
-    def calculate_discounted_reward(self, rewards):
-        return rewards[0] + 0.1 * rewards[1]
+        difference = currentBoard - previousBoard
 
+        # Initialize reward
+        reward = 0
+
+        # Iterate over the board to find where merges happened
+        for row in range(difference.shape[0]):
+            for col in range(difference.shape[1]):
+                if difference[row, col] > 0:  # A positive difference indicates a merge
+                    merged_value = currentBoard[row, col]  # The value after the merge
+                    reward += np.log2(merged_value)
+
+        return reward if reward > 0 else 0
+    
+    def calculate_discounted_reward(self, rewards, gamma=0.99):
+        totalReward = 0
+        for i, reward in enumerate(rewards):
+            totalReward += (gamma ** i) * reward
+        return totalReward
+    
     def calculate_penalty(self, action):
         # moving left or up
         nonPriorityActions = [0, 2]  
