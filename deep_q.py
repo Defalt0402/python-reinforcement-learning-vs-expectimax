@@ -67,7 +67,7 @@ class Q_Network(Network):
     
     def one_hot_encode_board(self, board):
         possibleVals = [2**i for i in range(1, 17)] # array of powers of 2 from 2 to 64000
-        oneHotVector = np.array([self.one_hot_encode(possibleVals, val) for val in board.flatten()]).flatten()
+        oneHotVector = np.array([self.one_hot_encode(possibleVals, val) for val in board.flatten()]).flatten().reshape(1, -1)
         return oneHotVector
         
     def add_layer(self, numInputs, neurons, activation):
@@ -80,8 +80,8 @@ class Q_Network(Network):
     def choose_action(self, state):
         if np.random.rand() <= self.epsilon:
             return np.random.choice(self.actionSpace)
-        state = state.flatten().reshape(1, -1)
-        q_values = self.forward(state)
+        oneHotState = self.one_hot_encode_board(state)
+        q_values = self.forward(oneHotState)
         return np.argmax(q_values)
     
     def replay(self):
@@ -90,15 +90,15 @@ class Q_Network(Network):
 
         minibatch = random.sample(self.buffer, self.batch_size)
         for state, action, reward, next_state, done in minibatch:
-
-            target = self.forward(state.flatten().reshape(1, -1))
+            oneHotState = self.one_hot_encode_board(state)
+            target = self.forward(oneHotState)
             if done:
                 target[0][action] = reward - 1000
             else:
-                next_state = next_state.flatten().reshape(1, -1)
-                t = self.target_network.forward(next_state)
+                oneHotNextState = self.one_hot_encode_board(next_state)
+                t = self.target_network.forward(oneHotNextState)
                 target[0][action] = reward + self.gamma * np.amax(t)
-            self.partial_fit(state.flatten().reshape(1, -1), target)
+            self.partial_fit(oneHotState, target)
 
     def update_epsilon(self):
         if self.epsilon > self.epsilon_min:
