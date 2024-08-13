@@ -127,10 +127,12 @@ class Q_Network(Network):
             self.score_history.append(self.game.score)
             print(f"Episode {episode + 1}/{episodes}, Score: {self.game.score}, Epsilon: {self.epsilon}")
 
-        self.plot_metrics("2048_agent_no_score")
-        self.save_model("2048_agent_no_score")
+        self.plot_metrics("2048_agent")
+        self.save_model("2048_agent")
             
     def step(self, action):
+        previousBoard = np.copy(self.game.board)
+
         if action == 0:
             moved = self.game.slide_left()
         elif action == 1:
@@ -140,10 +142,18 @@ class Q_Network(Network):
         elif action == 3:
             moved = self.game.slide_down()
         
-        reward = self.game.evaluate_board()
-        next_state = self.game.board
+        reward = self.calculate_reward(previousBoard, self.game.board)
+
         done = self.game.is_game_over()
+        next_state = self.game.board
         return next_state, reward, done
+
+    def calculate_reward(self, previousBoard, currentBoard):
+        mergedVal = sum(currentBoard.flatten()) - sum(previousBoard.flatten())
+        return mergedVal if mergedVal > 0 else 0
+    
+    def calculate_discounted_reward(rewards):
+        return rewards[0] + 0.1 * rewards[1]
 
     def plot_metrics(self, saveName=None):
         if len(self.score_history) == 0:

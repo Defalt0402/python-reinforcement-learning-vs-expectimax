@@ -260,12 +260,13 @@ class GUI:
             num_actions = 4
             loss = Mean_Squared_Error_Loss
             self.agent = Q_Network(Game, input_neurons, loss, num_actions)
-            self.agent.add_layer(16, 64, ReLU)
-            self.agent.add_layer(64, 64, ReLU)
-            self.agent.add_layer(64, 32, ReLU)
-            self.agent.add_layer(32, 4, Linear)
+            self.agent.add_layer(256, 1024, ReLU)
+            self.agent.add_layer(1024, 1024, ReLU)
+            self.agent.add_layer(1024, 1024, ReLU)
+            self.agent.add_layer(1024, 1024, ReLU)
+            self.agent.add_layer(1024, 4, Linear)
             self.agent.train(episodes, gui_callback=self.update_gui_during_training)
-            self.agent.save_model("2048_agent_no_score.pkl")
+            self.agent.save_model("2048_agent_one_hot.pkl")
         else:
             self.load_agent(name)
             self.agent.train(episodes, gui_callback=self.update_gui_during_training)
