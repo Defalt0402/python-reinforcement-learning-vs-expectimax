@@ -64,6 +64,11 @@ class Q_Network(Network):
             oneHotVector[index] = 1
 
         return oneHotVector
+    
+    def one_hot_encode_board(self, board):
+        possibleVals = [2**i for i in range(1, 17)] # array of powers of 2 from 2 to 64000
+        oneHotVector = np.array([self.one_hot_encode(possibleVals, val) for val in board.flatten()]).flatten()
+        return oneHotVector
         
     def add_layer(self, numInputs, neurons, activation):
         self.hidden_layers.append(Layer(numInputs, neurons, activation))
@@ -85,6 +90,7 @@ class Q_Network(Network):
 
         minibatch = random.sample(self.buffer, self.batch_size)
         for state, action, reward, next_state, done in minibatch:
+
             target = self.forward(state.flatten().reshape(1, -1))
             if done:
                 target[0][action] = reward - 1000
