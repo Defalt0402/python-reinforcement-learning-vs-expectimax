@@ -48,7 +48,7 @@ class Q_Network(Network):
                         model["epsilon"], model["minEpsilon"], model["epsilonDecay"], model["alpha"])
         for weights, biases, activation in model['hidden_layers']:
             layer = Layer(0, 0, activation)
-            layer.load_layer(weights, biases)
+            layer.load_layer(weights, biases, activation)
             net.hidden_layers.append(layer)
         for weights, biases, activation in model['target_hidden_layers']:
             layer = Layer(0, 0, activation)
@@ -93,11 +93,14 @@ class Q_Network(Network):
             oneHotState = self.one_hot_encode_board(state)
             target = self.forward(oneHotState)
             if done:
-                target[0][action] = reward - 1000
+                target[0][action] = reward - 100
             else:
                 oneHotNextState = self.one_hot_encode_board(next_state)
                 t = self.target_network.forward(oneHotNextState)
-                target[0][action] = reward + self.gamma * np.amax(t)
+
+                futureReward = self.calculate_discounted_reward([reward, np.amax(t)])
+                target[0][action] = reward + self.gamma * futureReward
+
             self.partial_fit(oneHotState, target)
 
     def update_epsilon(self):
@@ -110,6 +113,7 @@ class Q_Network(Network):
 
     def train(self, episodes, gui_callback=None):
         for episode in range(episodes):
+            count = 0
             self.game.reset()
             state = self.game.board
             done = False
@@ -118,7 +122,9 @@ class Q_Network(Network):
                 next_state, reward, done = self.step(action)
                 self.store_experience(state, action, reward, next_state, done)
                 state = next_state
-                self.replay()
+
+                for _ in range(10):
+                    self.replay()
 
                 if gui_callback is not None:
                     gui_callback()
@@ -126,6 +132,10 @@ class Q_Network(Network):
             self.update_epsilon()
             self.score_history.append(self.game.score)
             print(f"Episode {episode + 1}/{episodes}, Score: {self.game.score}, Epsilon: {self.epsilon}")
+
+            count += 1
+            if count % 5 == 0:
+                self.save_model("2048_agent")
 
         self.plot_metrics("2048_agent")
         self.save_model("2048_agent")
@@ -142,7 +152,7 @@ class Q_Network(Network):
         elif action == 3:
             moved = self.game.slide_down()
         
-        reward = self.calculate_reward(previousBoard, self.game.board)
+        reward = self.calculate_reward_with_penalty(previousBoard, self.game.board, action)
 
         done = self.game.is_game_over()
         next_state = self.game.board
@@ -152,8 +162,21 @@ class Q_Network(Network):
         mergedVal = sum(currentBoard.flatten()) - sum(previousBoard.flatten())
         return mergedVal if mergedVal > 0 else 0
     
-    def calculate_discounted_reward(rewards):
+    def calculate_discounted_reward(self, rewards):
         return rewards[0] + 0.1 * rewards[1]
+
+    def calculate_penalty(self, action):
+        # moving left or up
+        nonPriorityActions = [0, 2]  
+        if action in nonPriorityActions:
+            return -5  # Penalty for non-priority action
+        return 0
+
+    def calculate_reward_with_penalty(self, previousBoard, currentBoard, action):
+        reward = self.calculate_reward(previousBoard, currentBoard)
+        penalty = self.calculate_penalty(action)
+        
+        return reward + penalty
 
     def plot_metrics(self, saveName=None):
         if len(self.score_history) == 0:
