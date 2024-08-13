@@ -56,6 +56,14 @@ class Q_Network(Network):
             net.target_network.hidden_layers.append(layer)
         return net
 
+    def one_hot_encode(self, possibleVals, val):
+        oneHotVector = np.zeros(len(possibleVals))
+
+        if val in possibleVals:
+            index = possibleVals.index(val)
+            oneHotVector[index] = 1
+
+        return oneHotVector
         
     def add_layer(self, numInputs, neurons, activation):
         self.hidden_layers.append(Layer(numInputs, neurons, activation))
