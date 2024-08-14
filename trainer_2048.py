@@ -154,8 +154,15 @@ class GUI:
         self.control_panel.pack(side=tk.RIGHT, fill=tk.Y, padx=10, pady=10)
         
         # Create a label to display the score
-        self.score_label = tk.Label(self.control_panel, text=f"Score: {self.game.score}", font=('Arial', 24))
+        self.score_label = tk.Label(self.control_panel, text=f"Score: {str(int(self.game.score))}", font=('Arial', 24))
         self.score_label.pack(side=tk.TOP, pady=10)
+
+        # Create a label and entry for model name input
+        self.model_name_var = tk.StringVar()
+        self.model_name_label = tk.Label(self.control_panel, text="Model Name:")
+        self.model_name_label.pack(side=tk.TOP, pady=10)
+        self.model_name_entry = tk.Entry(self.control_panel, textvariable=self.model_name_var, width=30)
+        self.model_name_entry.pack(side=tk.TOP, pady=10)
 
         # Create buttons in the control panel
         self.train_button = tk.Button(self.control_panel, text="Train Agent", command=self.train_agent)
