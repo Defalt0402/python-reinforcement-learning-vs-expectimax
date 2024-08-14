@@ -136,8 +136,8 @@ class Q_Network(Network):
 
             count += 1
             if count % 5 == 0:
-                print("saved")
                 self.save_model("2048_agent")
+                print("saved")
 
         self.plot_metrics("2048_agent")
         self.save_model("2048_agent")

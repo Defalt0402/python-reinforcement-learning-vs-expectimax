@@ -6,17 +6,6 @@ from multiprocessing import Pool, Manager
 import tkinter as tk
 import numpy as np
 
-
-def worker(params, hidden_layers):
-            agent = Q_Network(Game, 16, Mean_Squared_Error_Loss, 4, **params)
-            for inputs, num_neurons, activation in hidden_layers:
-                agent.add_layer(inputs, num_neurons, activation)
-            agent.train(episodes=1000)
-            agent.plot_metrics(f"agent: {params}, layers: {hidden_layers}")
-            score = max(agent.score_history)  # Or use some other performance metric
-            return score, params, hidden_layers
-
-
 class Game:
     def __init__(self):
         self.reset()
@@ -254,7 +243,7 @@ class GUI:
     def show_game_over(self):
         self.canvas.create_text(200, 200, text="Game Over", font=('Arial', 36), fill='red')
 
-    def train_agent(self, episodes=2000, name=None):
+    def train_agent(self, episodes=200, name="2048_agent"):
         if name == None:
             input_neurons = 16
             num_actions = 4
@@ -269,53 +258,10 @@ class GUI:
             self.agent.save_model("2048_agent")
         else:
             self.load_agent(name)
+            self.agent.alpha = 0.00005
             self.agent.train(episodes, gui_callback=self.update_gui_during_training)
             self.agent.save_model(name)
         print("Agent trained and model saved as 2048_agent.pkl")
-
-    def grid_search(self, episodes=1000, name=None):
-        param_grid = {
-            'alpha': [0.001],
-            'gamma': [0.95, 0.99],
-            'epsilon': [0.75, 1.0],
-            'epsilonDecay': [ 0.995, 0.9995],
-            'batchSize': [32, 64],
-            'bufferSize': [5000]
-        }
-
-        # Define hidden layer configurations
-        hidden_layers_configurations = [
-            [(16, 64, ReLU), (64, 64, ReLU), (64, 64, ReLU), (64, 4, Linear)],
-            [(16, 64, ReLU), (64, 64, ReLU), (64, 4, Linear)],
-            [(16, 32, ReLU), (32, 32, ReLU), (32, 32, ReLU), (32, 4, Linear)],
-        ]
-
-        param_combinations = list(ParameterGrid(param_grid))
-
-        manager = Manager()
-        results = manager.list()
-
-        with Pool() as pool:
-            jobs = []
-            for hidden_layers in hidden_layers_configurations:
-                for params in param_combinations:
-                    job = pool.apply_async(worker, (params, hidden_layers), callback=lambda result: results.append(result))
-                    jobs.append(job)
-            for job in jobs:
-                job.get()  # Wait for all jobs to complete
-
-        best_score = -float('inf')
-        best_params = None
-        best_configuration = None
-        for score, params, hidden_layers in results:
-            if score > best_score:
-                best_score = score
-                best_params = params
-                best_configuration = hidden_layers
-
-        print(f"Best Score: {best_score}")
-        print(f"Best Hidden Layer Configuration: {best_configuration}")
-        print(f"Best Hyperparameters: {best_params}")
 
     def update_gui_during_training(self):
         self.game = self.agent.game  # Update the game state in the GUI
