@@ -250,9 +250,10 @@ class GUI:
     def show_game_over(self):
         self.canvas.create_text(200, 200, text="Game Over", font=('Arial', 36), fill='red')
 
-    def train_agent(self, episodes=200, name="2048_agent"):
+    def train_agent(self, episodes=200):
+        name = self.model_name_var.get() or "2048_agent"  # Use default name if entry is empty
         if name == None:
-            input_neurons = 16
+            input_neurons = 256
             num_actions = 4
             loss = Mean_Squared_Error_Loss
             self.agent = Q_Network(Game, input_neurons, loss, num_actions)
@@ -263,19 +264,20 @@ class GUI:
             self.agent.add_layer(1024, 4, Linear)
             self.agent.train(episodes, gui_callback=self.update_gui_during_training)
             self.agent.save_model("2048_agent")
+            print("Agent trained and model saved as 2048_agent.pkl")
         else:
             self.load_agent(name)
-            self.agent.alpha = 0.00005
             self.agent.train(episodes, gui_callback=self.update_gui_during_training)
             self.agent.save_model(name)
-        print("Agent trained and model saved as 2048_agent.pkl")
+            print(f"Agent trained and model saved as {name}.pkl")
 
     def update_gui_during_training(self):
         self.game = self.agent.game  # Update the game state in the GUI
         self.draw_board()
         self.root.update_idletasks()  # Update the GUI
 
-    def load_agent(self, name=None):
+    def load_agent(self):
+        name = self.model_name_var.get() or "2048_agent"  # Use default name if entry is empty
         if name == None:
             self.agent = Q_Network(lambda: None, 16, Mean_Squared_Error_Loss, 4).load_model('2048_agent.pkl')
         else:
@@ -298,24 +300,18 @@ class GUI:
             if self.game.is_game_over():
                 self.show_game_over()
             else:
-                self.root.after(500, self.agent_move)
+                self.root.after(100, self.agent_move)
 
     def play_with_agent(self):
         self.load_agent()
         self.root.after(50, self.agent_move)
     
-    def play_with_expectimax(self, moves=0):
+    def play_with_expectimax(self):
         move = self.expectimaxAgent.get_best_move()
         self.game.expect_move(move)
         self.draw_board()
 
         if self.game.is_game_over():
-            self.reset()
-            self.expectimaxAgent.save_memo()
-            self.play_with_expectimax()
-        if moves == 20:
-            self.reset()
-            self.expectimaxAgent.save_memo()
-            self.play_with_expectimax()
+            self.show_game_over()
         else:
-            self.root.after(50, lambda: self.play_with_expectimax(moves+1))
+            self.root.after(50, self.play_with_expectimax)
