@@ -137,6 +137,9 @@ class Game:
     
 class GUI:
     def __init__(self, root):
+        self.gamesPlayed = 0
+        self.score_history = []
+
         self.game = Game()
         self.root = root
         self.root.title("2048")
@@ -298,12 +301,21 @@ class GUI:
                 moved = self.game.slide_down()
             self.draw_board()
             if self.game.is_game_over():
-                self.show_game_over()
+                self.gamesPlayed += 1
+                self.score_history.append(self.game.score)
+                if self.gamesPlayed == 50:
+                    self.plot_scores()
+                else:
+                    self.reset()
+                    self.root.after(50, self.agent_move)    
+                    self.show_game_over()
             else:
                 self.root.after(100, self.agent_move)
 
     def play_with_agent(self):
-        self.load_agent()
+        if self.agent == None:
+            self.load_agent()
+        
         self.root.after(50, self.agent_move)
     
     def play_with_expectimax(self):
@@ -312,6 +324,24 @@ class GUI:
         self.draw_board()
 
         if self.game.is_game_over():
-            self.show_game_over()
+            self.gamesPlayed += 1
+            self.score_history.append(self.game.score)
+            if self.gamesPlayed == 50:
+                self.plot_scores()
+            else:
+                self.reset()
+                self.root.after(50, self.play_with_expectimax)    
         else:
             self.root.after(50, self.play_with_expectimax)
+
+    def plot_scores(self):
+        plt.figure(figsize=(5, 5))
+
+        # Plot scores
+        plt.plot(range(len(self.score_history)), self.score_history, label='Score per Game', color='b')
+        plt.xlabel('Game')
+        plt.ylabel('Score')
+        plt.title('Score Per Game')
+        plt.legend()
+        plt.savefig("graphs/Deep_Q_Performance.png")
+        plt.show()
