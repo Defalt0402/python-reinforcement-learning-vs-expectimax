@@ -18,8 +18,8 @@ This project is a Python implementation of the game 2048, enhanced with two tech
 3. [Usage](#usage)
    - [Playing the Game](#playing-the-game)
    - [Training the Q-Learning Agent](#training-the-q-learning-agent)
+   - [Playing with Q-Learning Agent](#playing-with-q-learning-agent)
    - [Playing with Expectimax Agent](#playing-with-expectimax-agent)
-   - [Playing with Q-Learning Agent](#playing-with-Q-Learning-agent)
 4. [File Descriptions](#file-descriptions)
 5. [Expectimax](#expectimax)
 6. [Deep Q Network](#deep-q-network)
@@ -170,6 +170,25 @@ After considering and improving these issues, and fixing the many errors I encou
 Once the Q-learning model had been trained for a sufficient amount of time, such that its performance was more consistently higher, I was able to begin pitting the two approaches against each other, to find which would perform better overall.
 
 For each approach, I had the agent play a set of 50 games, and recorded the score achieved by the agent at the end of each game. I then plot this data on a graph of game number against score. This would allow me to compare the maximum scores, average scores, and how consistent the agent performed.
+
+**Expectimax:**
+
+| ![Expectimax Gameplay](gifs/expectimax.gif) | ![Expectimax Performance](graphs/Expectimax_Performance.png) |
+|:-------------------------------------------:|:------------------------------------------------------------:|
+
+Expectimax performs very well. The agent consistently merges to a 1024 or 2048 tile, using a search depth of 3. At this depth, the game can run very quickly, with little time required to calculate the best next move. The random nature of 2048 does cause a large variance in the possible scores, however most games score above 15000 points, which is very successful. In the best game of the 50 sampled, the agent was able to score more than 40000 points. In this game, the agent created a 2048 and a 1024 which existed simultaneously, suggesting that the agent may have been able to produce a 4096 tile had the conditions been right.
+
+**Q-Learning:**
+
+| ![DQN Gameplay](gifs/dqn.gif) | ![DQN Performance](graphs/Deep_Q_Performance.png) |
+|:-----------------------------:|:-------------------------------------------------:|
+
+Due mostly to my inability to efficiently train such a large model, my Q-Learning approach to playing 2048 is very poor. The agent reached only a maximum tile size of 512, and did so with very little frequency. Along with poor scoring, the agent also takes a measurable amount of time to calculate the best move from certain board states, with a greater number of empty tiles corresponding with times at which the agent took longer to find a move. 
+
+Overall, expectimax performs with much greater efficacy than Q-Learning when using my implementation of the two approaches. A very clear indicator of this fasct is that the maximum score achieved by the Q-Learning network was almost equal to that of the minimum score of the expectimax agent. When comparing the approaches on speed to calculate moves, score and tile size achieved, and time required to devise, code, and test an implementation, expectimax beats Q-Learning on all fronts. 
+This is not to say, however, that Q-Learning could not be a viable approach. Based on work done by others, notably Rinat Maksutov[^5], it is clear that Q-Learning can be a well performing approach, if given the time and computational resources to train an adequately complex model.
+
+This project has allowed me to explore the use of recursion, neural networks, Q-Learning, and the influence of randomness on the outcome of a program. Along with this, I have been able to practice my python and problem solving skills, and ultimately have produced a simple program that I am happy with.
 
 ---
 
