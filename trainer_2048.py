@@ -301,14 +301,7 @@ class GUI:
                 moved = self.game.slide_down()
             self.draw_board()
             if self.game.is_game_over():
-                self.gamesPlayed += 1
-                self.score_history.append(self.game.score)
-                if self.gamesPlayed == 50:
-                    self.plot_scores()
-                else:
-                    self.reset()
-                    self.root.after(50, self.agent_move)    
-                    self.show_game_over()
+                self.show_game_over()
             else:
                 self.root.after(100, self.agent_move)
 
@@ -324,13 +317,7 @@ class GUI:
         self.draw_board()
 
         if self.game.is_game_over():
-            self.gamesPlayed += 1
-            self.score_history.append(self.game.score)
-            if self.gamesPlayed == 50:
-                self.plot_scores()
-            else:
-                self.reset()
-                self.root.after(50, self.play_with_expectimax)    
+            self.show_game_over()   
         else:
             self.root.after(50, self.play_with_expectimax)
 
